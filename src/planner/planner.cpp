@@ -22,7 +22,7 @@ int main() {
     std::unordered_map<uint64_t*, std::pair<uint64_t*, int>> path_info;
 
     auto start = std::chrono::steady_clock::now();
-    const std::chrono::minutes timeout(10);
+    const std::chrono::minutes timeout(20);
     uint64_t state_expanded_count = 0;
 
     bool done = false;

@@ -47,7 +47,7 @@ class ExplicitEffect:
 def read_facts(lines) -> list[FactPair]:
     count = int(next(lines))
     facts = []
-    for i in range(count):
+    for _ in range(count):
         line = next(lines)
         line = line.split()
         facts.append(FactPair(int(line[0]), int(line[1])))
@@ -120,9 +120,7 @@ def read_and_verify_version(lines):
     version = int(next(lines))
     helpers.check_magic(next(lines), "end_version")
     if version != constants.PRE_FILE_VERSION:
-        logging.error(
-            f"Expected translator output file version {constants.PRE_FILE_VERSION} got {version}."
-        )
+        logging.error("Expected translator output file version %s got %s.", constants.PRE_FILE_VERSION, version)
         sys.exit("Search input error")
 
 
@@ -158,8 +156,8 @@ def read_mutexes_raw(lines, n_groups) -> list[list[FactPair]]:
 
 def read_mutexes(lines, variables: list[ExplicitVariable]) -> tuple[list[list[set[FactPair]]], list[list[FactPair]]]:
     mutexes = []
-    for i in range(len(variables)):
-        inner: list[set[FactPair]] = [set()] * variables[i].domain_size
+    for var in variables:
+        inner: list[set[FactPair]] = [set()] * var.domain_size
         mutexes.append(inner)
     num_mutex_groups = int(next(lines))
     mutexes_raw = read_mutexes_raw(lines, num_mutex_groups)
@@ -183,11 +181,11 @@ def read_goal(lines) -> list[FactPair]:
 
 def check_fact(fact: FactPair, variables: list[ExplicitVariable]):
     if not helpers.in_bounds(fact.var, variables):
-        logging.error(f"Invalid variable id: {fact.var}")
+        logging.error("Invalid variable id: %s", fact.var)
         sys.exit("Search input error")
 
     if (fact.value < 0) or (fact.value >= variables[fact.var].domain_size):
-        logging.error(f"Invalid value of variable: {fact.var}: {fact.value}")
+        logging.error("Invalid value of variable: %s: %s", fact.var, fact.value)
         sys.exit("Search input error")
 
 
@@ -203,9 +201,7 @@ def check_op(op: ExplicitOperator, variables: list[ExplicitVariable]):
         check_facts(effect.conditions, variables)
 
 
-def read_action(
-    lines, is_axiom: bool, use_metric: bool, variables: list[ExplicitVariable]
-) -> list[ExplicitOperator]:
+def read_action(lines, is_axiom: bool, use_metric: bool, variables: list[ExplicitVariable]) -> list[ExplicitOperator]:
     count = int(next(lines))
     actions: list[ExplicitOperator] = []
     for _ in range(count):
@@ -300,9 +296,7 @@ class RootTask:
     def get_num_operator_preconditions(self, index: int, is_axiom: bool) -> int:
         return len(self._get_operator_or_axiom(index, is_axiom).preconditions)
 
-    def get_operator_precondition(
-        self, op_index: int, fact_index: int, is_axiom: bool
-    ) -> FactPair:
+    def get_operator_precondition(self, op_index: int, fact_index: int, is_axiom: bool) -> FactPair:
         op: ExplicitOperator = self._get_operator_or_axiom(op_index, is_axiom)
         assert helpers.in_bounds(fact_index, op.preconditions)
         return op.preconditions[fact_index]
@@ -310,21 +304,15 @@ class RootTask:
     def get_num_operator_effects(self, op_index: int, is_axiom: bool) -> int:
         return len(self._get_operator_or_axiom(op_index, is_axiom).effects)
 
-    def get_num_operator_effect_conditions(
-        self, op_index: int, eff_index: int, is_axiom: bool
-    ) -> int:
+    def get_num_operator_effect_conditions(self, op_index: int, eff_index: int, is_axiom: bool) -> int:
         return len(self._get_effect(op_index, eff_index, is_axiom).conditions)
 
-    def get_operator_effect_condition(
-        self, op_index: int, eff_index: int, cond_index: int, is_axiom: bool
-    ) -> FactPair:
+    def get_operator_effect_condition(self, op_index: int, eff_index: int, cond_index: int, is_axiom: bool) -> FactPair:
         effect: ExplicitEffect = self._get_effect(op_index, eff_index, is_axiom)
         assert helpers.in_bounds(cond_index, effect.conditions)
         return effect.conditions[cond_index]
 
-    def get_operator_effect(
-        self, op_index: int, eff_index: int, is_axiom: bool
-    ) -> FactPair:
+    def get_operator_effect(self, op_index: int, eff_index: int, is_axiom: bool) -> FactPair:
         return self._get_effect(op_index, eff_index, is_axiom).fact
 
     def get_num_axioms(self) -> int:

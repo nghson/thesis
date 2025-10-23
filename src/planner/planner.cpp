@@ -50,6 +50,11 @@ int main() {
         }
     }
 
+    if (!done) {
+        printf("No solution found.\n");
+        return 0;
+    }
+
     auto now = std::chrono::steady_clock::now();
     std::chrono::duration<double> total = now - start;
     printf("number of states created: %ld\n", count);
@@ -57,9 +62,6 @@ int main() {
     printf("number of states created per second: %f\n", count / total.count());
     printf("number of states expanded per second: %f\n", state_expanded_count / total.count());
 
-    if (!done) {
-        return 0;
-    }
     std::stack<int> path;
     uint64_t* current = goal;
     while (current != INITIAL_STATE) {

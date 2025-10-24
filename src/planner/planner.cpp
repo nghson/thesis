@@ -19,7 +19,7 @@ int main() {
     PlannerQueue pq;
     add_to_queue(INITIAL_STATE, pq);
 
-    std::unordered_map<uint64_t*, std::pair<uint64_t*, int>> path_info;
+    PathInfoMap path_info;
 
     auto start = std::chrono::steady_clock::now();
     const std::chrono::minutes timeout(20);

@@ -28,7 +28,7 @@ def write_actions(root_task: parse.RootTask, var_infos: list[representations.Var
         file.write('#include "action.h"\n\n')
         file.write(
             (
-                "void actions(uint64_t* state_bitrep, PlannerQueue& pq, std::unordered_map<uint64_t*, std::pair<uint64_t*, int>>& path_info) {\n"
+                "void actions(uint64_t* state_bitrep, PlannerQueue& pq, PathInfoMap& path_info) {\n"
             )
         )
         for action_idx, op_rep in enumerate(op_reps):

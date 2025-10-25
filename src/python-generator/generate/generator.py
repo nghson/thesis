@@ -7,8 +7,13 @@ import numpy as np
 from generate import constants, parse, representations
 
 
-def write_configs(var_infos: list[representations.VarInfo], filename: str):
-    filepath = os.path.join(constants.C_SRC_CODE_DIR, filename)
+ACTION_FILE = "action.cpp"
+ACTION_HEADER = "action.h"
+CONFIG_FILE = "config.h"
+
+
+def write_configs(var_infos: list[representations.VarInfo]):
+    filepath = os.path.join(constants.C_SRC_CODE_DIR, CONFIG_FILE)
     with open(filepath, "w") as file:
         file.write("#ifndef CONFIG_H\n#define CONFIG_H\n")
         state_length = var_infos[-1].word_pos + 1
@@ -18,14 +23,14 @@ def write_configs(var_infos: list[representations.VarInfo], filename: str):
         file.write("#endif")
 
 
-def write_actions(root_task: parse.RootTask, var_infos: list[representations.VarInfo], filename: str):
-    filepath = os.path.join(constants.C_SRC_CODE_DIR, filename)
+def write_actions(root_task: parse.RootTask, var_infos: list[representations.VarInfo]):
+    filepath = os.path.join(constants.C_SRC_CODE_DIR, ACTION_FILE)
     op_reps = representations.get_all_op_reps(root_task, var_infos)
     initial_state_str = make_initial_state_str(root_task, var_infos)
     goal_str = make_goal_str(root_task, var_infos)
     state_length = var_infos[-1].word_pos + 1
     with open(filepath, "w") as file:
-        file.write('#include "action.h"\n\n')
+        file.write(f'#include "{ACTION_HEADER}"\n\n')
         file.write(
             (
                 "void actions(uint64_t* state_bitrep, PlannerQueue& pq, PathInfoMap& path_info) {\n"

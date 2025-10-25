@@ -113,7 +113,6 @@ def write_ff_graph(
     build_next_layer_str = make_build_next_layer_str(
         root_task, ff_var_infos, cumulative_var_domain
     )
-    backward_str = make_backward_str()
     get_preconds_for_action_str = make_get_preconds_for_action_str(root_task, cumulative_var_domain)
     get_effects_for_action_str = make_get_effects_for_action_str(root_task, cumulative_var_domain)
     with open(filepath, "w") as file:
@@ -121,7 +120,6 @@ def write_ff_graph(
         file.write(multi_valued_conversion_str)
         file.write(goal_str)
         file.write(build_next_layer_str)
-        file.write(backward_str)
         file.write(get_preconds_for_action_str)
         file.write(get_effects_for_action_str)
 
@@ -308,22 +306,6 @@ def get_cumulative_var_domain(root_task: parse.RootTask) -> list[int]:
     for var_idx in range(1, n_vars):
         l[var_idx] = l[var_idx - 1] + root_task.get_variable_domain_size(var_idx - 1)
     return l
-
-
-def make_backward_str():
-    f_str = helpers.FunctionStr(
-        "void",
-        "backward",
-        [
-            "std::vector<int>& fact_membership",
-            "std::vector<int>& action_membership",
-            "std::vector<int>& achieving_action",
-            "int layer",
-            "uint64_t* h"
-        ]
-    )
-
-    return f_str.make_str()
 
 
 def make_get_preconds_for_action_str(root_task: parse.RootTask, cumulative_var_domain: list[int]):

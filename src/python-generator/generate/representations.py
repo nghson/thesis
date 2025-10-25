@@ -8,9 +8,6 @@ from generate import parse
 
 @dataclass
 class VarInfo:
-    """
-    b_start is the index of the bit 
-    """
     b_start: int
     b_end: int
     b_length: int

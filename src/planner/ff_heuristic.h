@@ -5,6 +5,7 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <vector>
+#include <cassert>
 
 #include "ff_graph.h"
 #include "ff_config.h"

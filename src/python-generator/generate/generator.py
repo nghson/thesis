@@ -31,16 +31,13 @@ def write_actions(root_task: parse.RootTask, var_infos: list[representations.Var
     state_length = var_infos[-1].word_pos + 1
     with open(filepath, "w") as file:
         file.write(f'#include "{ACTION_HEADER}"\n\n')
-        file.write(
-            (
-                "void actions(uint64_t* state_bitrep, PlannerQueue& pq, PathInfoMap& path_info) {\n"
-            )
-        )
+        file.write(("void actions(uint64_t* state_bitrep, PlannerQueue& pq, PathInfoMap& path_info) {\n"))
         for action_idx, op_rep in enumerate(op_reps):
-            preconds_str = make_precond_str(op_rep.preconds)
-            effect_str = make_effect_str(action_idx, op_rep.effects, state_length)
-            if preconds_str:
-                file.write(f"if ({preconds_str})\n")
+            precond_str = make_precond_str(op_rep.preconds)
+            mutex_str = make_mutex_str_for_action(root_task, var_infos, action_idx)
+            effect_str = make_effect_str(action_idx, op_rep.effects, state_length, mutex_str)
+            if precond_str:
+                file.write(f"if ({precond_str})\n")
             file.write("{\n" + f"{effect_str}" + "}\n")
         file.write("}\n\n")
 
@@ -59,7 +56,7 @@ def make_precond_str(preconds: dict[int, representations.OperatorPair]) -> Optio
     return res
 
 
-def make_effect_str(action_idx: int, effects: dict[int, representations.OperatorPair], state_length: int) -> str:
+def make_effect_str(action_idx: int, effects: dict[int, representations.OperatorPair], state_length: int, mutex_str: Optional[str]) -> str:
     effect_str_list = []
     for state_ind in range(state_length):
         if state_ind in effects:
@@ -72,16 +69,14 @@ def make_effect_str(action_idx: int, effects: dict[int, representations.Operator
             )
         else:
             effect_str_list.append(f"newstate_bitrep[{state_ind}] = state_bitrep[{state_ind}];")
-    res = "\n".join(effect_str_list)
+    effect_str = "\n".join(effect_str_list)
     newstate_bitrep_str = "uint64_t* newstate_bitrep = allocate_state();\n"
-    add_path_info_str = make_add_path_info_str(action_idx)
-    add_newstate_to_queue = "add_to_queue(newstate_bitrep, pq);\n"
-    res = newstate_bitrep_str + res + "\n" + add_path_info_str + add_newstate_to_queue
-    return res
-
-
-def make_add_path_info_str(action_idx: int) -> str:
-    res = f"path_info.insert({{newstate_bitrep, std::make_pair(state_bitrep, {action_idx})}});\n"
+    add_newstate_to_queue = f"{{add_to_queue(newstate_bitrep, state_bitrep, {action_idx}, pq, path_info);}}\n"
+    if mutex_str:
+        mutex_test_str = f"if ({mutex_str})\n"
+        mutex_fail_str = "else {remove_last();}\n"
+        add_newstate_to_queue = mutex_test_str + add_newstate_to_queue + mutex_fail_str
+    res = newstate_bitrep_str + effect_str + "\n" + add_newstate_to_queue
     return res
 
 
@@ -120,3 +115,17 @@ def make_goal_str(root_task: parse.RootTask, var_infos: list[representations.Var
 
     res = f"bool is_goal(uint64_t* state_bitrep) {cond_str}\n\n"
     return res
+
+
+def make_mutex_str_for_action(
+    root_task: parse.RootTask, var_infos: list[representations.VarInfo], action_idx: int
+) -> Optional[str]:
+    res = []
+    mutexes = root_task.get_operator_mutexes(action_idx)
+    # print(f"mutex for action {action_idx}")
+    for fact in mutexes:
+        # print(fact.var, fact.value)
+        var_info = var_infos[fact.var]
+        val = np.uint64(0) | (fact.value << var_info.b_start)
+        res.append(f"((newstate_bitrep[{var_info.word_pos}] & {bin(var_info.mask_get)}) != {bin(val)})")
+    return ' && '.join(res) if len(res) > 0 else None

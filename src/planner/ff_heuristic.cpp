@@ -1,4 +1,5 @@
 #include "ff_heuristic.h"
+#include <stdio.h>
 
 using std::vector;
 
@@ -26,12 +27,25 @@ void copy_state(const uint64_t* src, uint64_t* dst) {
     }
 }
 
-uint64_t extract_h_value(vector<int>& fact_membership, vector<int>& action_membership, vector<int>& achieving_action, int layer) {
-    uint64_t h = 0;
-    for (int i = layer; i > 0; i--) {
-        backward(fact_membership, action_membership, achieving_action, layer, &h);
+void check_preconds_layer(vector<int>& fact_membership, vector<int>& action_membership) {
+    for (int action_idx = 0; action_idx < action_membership.size(); action_idx++) {
+        if (action_membership[action_idx] == -1) {
+            continue;
+        }
+        auto preconds = get_preconds_for_action(action_idx);
+        for (int precond : preconds) {
+            assert(fact_membership[precond] <= action_membership[action_idx]);
+        }
     }
-    return h;
+}
+
+void check_achieving_action_layer(vector<int>& fact_membership, vector<int>& action_membership, vector<int>& achieving_action) {
+    for (int fact_idx = 0; fact_idx < fact_membership.size(); fact_idx++) {
+        int achieving_action_idx = achieving_action[fact_idx];
+        int action_layer = action_membership[achieving_action_idx];
+        int fact_layer = fact_membership[fact_idx];
+        assert(action_layer < fact_layer);
+    }
 }
 
 int build_relaxed_graph(uint64_t* ff_state, vector<int>& fact_membership, vector<int>& action_membership, vector<int>& achieving_action, vector<vector<int>>& G) {
@@ -61,6 +75,8 @@ void ff_heuristic(uint64_t* state) {
     convert_state_to_multi_valued(state, ff_state, fact_membership);
 
     int status_code = build_relaxed_graph(ff_state, fact_membership, action_membership, achieving_action, G);
+    // check_preconds_layer(fact_membership, action_membership);
+    // check_achieving_action_layer(fact_membership, action_membership, achieving_action);
 
     if (status_code == STATUS_FIXPOINT) {
         // set heuristic to be the largest value
@@ -73,14 +89,21 @@ void ff_heuristic(uint64_t* state) {
     vector<int> sol;
     for (int l = G.size() - 1; l >= 0; l--) {
         for (int goal_fact_index : G[l]) {
+            assert(fact_membership[goal_fact_index] == l + 1);
             if (marked_fact[goal_fact_index]) {
                 continue;
             }
             int achieving_action_index = achieving_action[goal_fact_index];
+            assert(action_membership[achieving_action_index] < l + 1);
             sol.push_back(achieving_action_index);
             vector<int> preconds = get_preconds_for_action(achieving_action_index);
             for (int precond_idx : preconds) {
                 int fact_layer = fact_membership[precond_idx];
+                if (fact_layer > action_membership[achieving_action_index]) {
+                    printf("goal: %d-%d, action: %d-%d, precond: %d-%d\n", goal_fact_index, fact_membership[goal_fact_index], achieving_action_index, action_membership[achieving_action_index], precond_idx, fact_membership[precond_idx]);
+                }
+                assert(fact_layer <= action_membership[achieving_action_index]);
+                assert(fact_layer < l + 1);
                 if (fact_layer == 0) {
                     continue;
                 }
@@ -90,7 +113,7 @@ void ff_heuristic(uint64_t* state) {
 
             vector<int> effects = get_effects_for_action(achieving_action_index);
             for (int effect_idx : effects) {
-                if (fact_membership[effect_idx] == l) {
+                if (fact_membership[effect_idx] == l + 1) {
                     marked_fact[effect_idx] = true;
                 }
             }

@@ -13,6 +13,9 @@ class FactPair:
         self.var = var
         self.value = value
 
+    def __repr__(self):
+        return f"(var: {self.var}, value: {self.value})"
+
     # TODO: see if needed to add the remaining methods of FactPair and no_fact
 
 
@@ -156,9 +159,10 @@ def read_mutexes_raw(lines, n_groups) -> list[list[FactPair]]:
 
 def read_mutexes(lines, variables: list[ExplicitVariable]) -> tuple[list[list[set[FactPair]]], list[list[FactPair]]]:
     mutexes = []
-    for var in variables:
-        inner: list[set[FactPair]] = [set()] * var.domain_size
-        mutexes.append(inner)
+    for i, var in enumerate(variables):
+        mutexes.append([])
+        for _ in range(var.domain_size):
+            mutexes[i].append(set())
     num_mutex_groups = int(next(lines))
     mutexes_raw = read_mutexes_raw(lines, num_mutex_groups)
     for invariant_group in mutexes_raw:
@@ -283,6 +287,19 @@ class RootTask:
         assert helpers.in_bounds(fact1.var, self.mutexes)
         assert helpers.in_bounds(fact1.value, self.mutexes[fact1.var])
         return fact2 in self.mutexes[fact1.var][fact1.value]
+
+    def get_operator_mutexes(self, op_index: int) -> list[FactPair]:
+        mutexes = set()
+        n_effects = self.get_num_operator_effects(op_index, False)
+        # print(f"mutexes for action {op_index}")
+        for fact_idx in range(n_effects):
+            fact = self.get_operator_effect(op_index, fact_idx, False)
+            # print("effect:", fact.var, fact.value)
+            fact_mutexes = self.mutexes[fact.var][fact.value]
+            # print(fact_mutexes)
+            mutexes.update(fact_mutexes)
+        # print("---------")
+        return list(mutexes)
 
     def get_operator_cost(self, index: int, is_axiom: bool) -> int:
         return self._get_operator_or_axiom(index, is_axiom).cost

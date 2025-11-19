@@ -42,8 +42,12 @@ void check_preconds_layer(vector<int>& fact_membership, vector<int>& action_memb
 void check_achieving_action_layer(vector<int>& fact_membership, vector<int>& action_membership, vector<int>& achieving_action) {
     for (int fact_idx = 0; fact_idx < fact_membership.size(); fact_idx++) {
         int achieving_action_idx = achieving_action[fact_idx];
+        if (achieving_action_idx == -1) { // initial facts or unreachable facts
+            continue;
+        }
         int action_layer = action_membership[achieving_action_idx];
         int fact_layer = fact_membership[fact_idx];
+        // printf("action: %d %d, fact: %d %d\n", achieving_action_idx, action_layer, fact_idx, fact_layer);
         assert(action_layer < fact_layer);
     }
 }

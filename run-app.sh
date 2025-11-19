@@ -1,4 +1,7 @@
+echo "Generating code"
 bash run-generator.sh $1
+echo "Compiling"
 g++ -o planner -O2 src/planner/*.cpp src/planner/xxHash/xxhash.c
-bash path_action_names.sh $1
+echo "Start running planner"
+bash path-action-names.sh $1
 

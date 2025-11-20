@@ -7,19 +7,40 @@
 #include <utility>
 #include <unordered_map>
 #include <stack>
+#include <string>
+#include <vector>
 
 #include "storage.h"
 #include "visited_set.h"
 #include "action.h"
 #include "h_pqueue.h"
 
-int main() {
+void greedy_best_first_search();
+void simulated_annealing();
+
+int main(int argc, char* argv[]) {
+    if (argc == 1) {
+        printf("No search algorithm specified.\n");
+        return 0;
+    }
+
+    std::vector<std::string> args(argv, argv + argc);
+    if (args[1] == "gbfs") {
+        greedy_best_first_search();
+    }
+    if (args[1] == "sa") {
+        simulated_annealing();
+    }
+    return 0;
+}
+
+void greedy_best_first_search() {
     storage_init();
 
-    PlannerQueue pq;
-    add_to_queue(INITIAL_STATE, pq);
-
     PathInfoMap path_info;
+
+    PlannerQueue pq;
+    add_to_queue(INITIAL_STATE, NULL, -1, pq, path_info);
 
     auto start = std::chrono::steady_clock::now();
     const std::chrono::minutes timeout(20);
@@ -52,7 +73,6 @@ int main() {
 
     if (!done) {
         printf("No solution found.\n");
-        return 0;
     }
 
     auto now = std::chrono::steady_clock::now();
@@ -75,6 +95,8 @@ int main() {
     }
 
     free_storage();
+}
 
-    return 0;
+void simulated_annealing() {
+
 }

@@ -11,6 +11,9 @@ uint64_t* allocate_state();
 void remove_last();
 void free_storage();
 
+uint64_t* get_last_state();
+void remove_batch(int n);
+
 extern uint64_t count;
 
 #endif

@@ -9,11 +9,13 @@
 #include <stack>
 #include <string>
 #include <vector>
+#include <random>
 
 #include "storage.h"
 #include "visited_set.h"
 #include "action.h"
 #include "h_pqueue.h"
+#include "ff_heuristic.h"
 
 void greedy_best_first_search();
 void simulated_annealing();
@@ -98,5 +100,50 @@ void greedy_best_first_search() {
 }
 
 void simulated_annealing() {
+    storage_init();
+    std::vector<int> actions;
 
+    double T = 10000;
+    double u = 0.995;
+    uint64_t value;
+    bool done = false;
+
+    while (T > 1) {
+        // next state
+
+        uint64_t* last_state = get_last_state();
+
+        // check goal
+        if (is_goal(last_state)) {
+            printf("Success.\n");
+            // complete action array
+            done = true;
+            break;
+        }
+
+        // state value
+        ff_heuristic(last_state);
+        uint64_t next_value = actions.size() + last_state[STATE_LENGTH];
+
+        // update state
+        if (next_value < value) {
+            // keep the state and add the action, or remove states and actions 
+            
+            // update value
+            value = next_value;
+        } else {
+            // undo the last action whether it's adding a new state or removing some states
+        }
+        std::mt19937 rng(std::chrono::steady_clock::now().time_since_epoch().count());
+        std::bernoulli_distribution();
+
+
+        T *= u;
+    }
+
+    if (!done) {
+        printf("No solution found.\n");
+    }
+
+    free_storage();
 }

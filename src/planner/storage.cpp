@@ -41,6 +41,16 @@ void remove_last() {
     storage.size -= STATE_LENGTH_HEU;
 }
 
+uint64_t* get_last_state() {
+    return storage.last_ptr;
+}
+
+void remove_batch(int n) {
+    for (int i = 0; i < n; i++) {
+        remove_last();
+    }
+}
+
 void free_storage() {
     free(storage.storage_ptr);
 }

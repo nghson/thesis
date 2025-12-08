@@ -41,8 +41,12 @@ void remove_last() {
     storage.size -= STATE_LENGTH_HEU;
 }
 
-uint64_t* get_last_state() {
-    return storage.last_ptr;
+uint64_t* get_state(int index) {
+    if (index > storage.size - 1) {
+        printf("Error: storage index %d out of bounds.\n", index);
+        abort();
+    }
+    return storage.storage_ptr + index;
 }
 
 void remove_batch(int n) {

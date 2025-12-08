@@ -26,10 +26,12 @@ def main():
 
     generator.write_configs(var_infos)
     ff_generator.write_ff_configs(root_task, ff_var_infos)
+    generator.write_sa_header()
 
-    with concurrent.futures.ProcessPoolExecutor(max_workers=2) as executor:
+    with concurrent.futures.ProcessPoolExecutor(max_workers=4) as executor:
         executor.submit(generator.write_actions, root_task, var_infos)
         executor.submit(ff_generator.write_ff_graph, root_task, var_infos, ff_var_infos)
+        executor.submit(generator.write_sa_actions, root_task, var_infos)
 
 
 if __name__ == "__main__":

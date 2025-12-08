@@ -4,12 +4,15 @@ from typing import Optional
 
 import numpy as np
 
-from generate import constants, parse, representations
+from generate import constants, parse, representations, helpers
 
 
 ACTION_FILE = "action.cpp"
 ACTION_HEADER = "action.h"
 CONFIG_FILE = "config.h"
+
+SA_ACTION_FILE = "sa_action.cpp"
+SA_ACTION_HEADER = "sa_action.h"
 
 
 def write_configs(var_infos: list[representations.VarInfo]):
@@ -129,3 +132,77 @@ def make_mutex_str_for_action(
         val = np.uint64(0) | (fact.value << var_info.b_start)
         res.append(f"((newstate_bitrep[{var_info.word_pos}] & {bin(var_info.mask_get)}) != {bin(val)})")
     return ' && '.join(res) if len(res) > 0 else None
+
+
+def write_sa_actions(root_task: parse.RootTask, var_infos: list[representations.VarInfo]):
+    filepath = os.path.join(constants.C_SRC_CODE_DIR, SA_ACTION_FILE)
+    get_applicable_actions_str = make_get_applicable_actions_str(root_task, var_infos)
+    apply_action_effects_str = make_apply_action_effects_str(root_task, var_infos)
+    with open(filepath, "w") as file:
+        file.write("#include \"sa_action.h\"\n")
+        file.write(get_applicable_actions_str)
+        file.write(apply_action_effects_str)
+
+
+def make_get_applicable_actions_str(root_task: parse.RootTask, var_infos: list[representations.VarInfo]) -> str:
+    op_reps = representations.get_all_op_reps(root_task, var_infos)
+    f_str = helpers.FunctionStr(
+        "vector<int>",
+        "get_applicable_actions",
+        ["uint64_t* state_bitrep"]
+    )
+    f_str.add_body("vector<int> applicable_actions;")
+    for action_idx, op_rep in enumerate(op_reps):
+        precond_str = make_precond_str(op_rep.preconds)
+        if precond_str:
+            f_str.add_body(f"if ({precond_str})")
+        f_str.add_body("{ " + f"applicable_actions.push_back({action_idx});" + " }")
+    f_str.add_body("return applicable_actions;")
+    return f_str.make_str()
+
+
+def make_apply_action_effects_str(root_task: parse.RootTask, var_infos: list[representations.VarInfo]) -> str:
+    op_reps = representations.get_all_op_reps(root_task, var_infos)
+    state_length = var_infos[-1].word_pos + 1
+    f_str = helpers.FunctionStr(
+        "void",
+        "apply_action_effects",
+        ["uint64_t* state_bitrep", "int action_idx"]
+    )
+    f_str.add_body("uint64_t* newstate_bitrep = allocate_state();")
+    for action_idx, op_rep in enumerate(op_reps):
+        effect_str = make_new_state_str(action_idx, op_rep.effects, state_length)
+        f_str.add_body(effect_str)
+    return f_str.make_str()
+
+
+def write_sa_header():
+    filepath = os.path.join(constants.C_SRC_CODE_DIR, SA_ACTION_HEADER)
+    with open(filepath, "w") as file:
+        file.write("#ifndef SA_ACTION_H\n")
+        file.write("#define SA_ACTION_H\n")
+        file.write("#include <stdint.h>\n")
+        file.write("#include <vector>\n")
+        file.write("#include \"storage.h\"\n")
+        file.write("using namespace std;\n")
+        file.write("vector<int> get_applicable_actions(uint64_t* state_bitrep);\n")
+        file.write("void apply_action_effects(uint64_t* state_bitrep, int action_idx);\n")
+        file.write("#endif\n")
+
+
+def make_new_state_str(action_idx: int, effects: dict[int, representations.OperatorPair], state_length: int) -> str:
+    effect_str_list = []
+    for state_ind in range(state_length):
+        if state_ind in effects:
+            effect_str_list.append(
+                (
+                    f"newstate_bitrep[{state_ind}] "
+                    f"= (state_bitrep[{state_ind}] & {bin(effects[state_ind].mask)})"
+                    f" | {bin(effects[state_ind].val)};"
+                )
+            )
+        else:
+            effect_str_list.append(f"newstate_bitrep[{state_ind}] = state_bitrep[{state_ind}];")
+    effect_str = "\n".join(effect_str_list)
+    res =  f"if (action_idx == {action_idx}) " + "{\n" + effect_str + "\nreturn;\n}"
+    return res

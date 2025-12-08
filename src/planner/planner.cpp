@@ -16,6 +16,7 @@
 #include "action.h"
 #include "h_pqueue.h"
 #include "ff_heuristic.h"
+#include "sa_action.h"
 
 void greedy_best_first_search();
 void simulated_annealing();
@@ -99,44 +100,95 @@ void greedy_best_first_search() {
     free_storage();
 }
 
+typedef struct {
+    int current_var_state_idx;
+    int next_var_state_idx;
+    int current_action_idx;
+    int next_action_idx;
+} SimAnnState;
+
 void simulated_annealing() {
     storage_init();
-    std::vector<int> actions;
+    std::vector<uint> actions(STORAGE_LENGTH);
+    SimAnnState sa_state;
+    sa_state.current_action_idx = -1;
+    sa_state.current_var_state_idx = -1;
 
     double T = 10000;
     double u = 0.995;
-    uint64_t value;
+    ff_heuristic(INITIAL_STATE);
+    uint64_t value = INITIAL_STATE[STATE_LENGTH];
     bool done = false;
+    std::mt19937 rng(std::chrono::steady_clock::now().time_since_epoch().count());
+    uint64_t* current_var_state = INITIAL_STATE;
 
     while (T > 1) {
         // next state
-
-        uint64_t* last_state = get_last_state();
+        std::vector<int> applicable_actions = get_applicable_actions(current_var_state);
+        int action_num = 0;
+        if (applicable_actions.size() > 0) {
+            std::uniform_int_distribution<> random_action_picker(0, applicable_actions.size());
+            action_num = random_action_picker(rng);
+        }
+        if (false && sa_state.current_action_idx > 2 && action_num == applicable_actions.size()) {
+            std::uniform_int_distribution<> random_n_states(1, sa_state.current_action_idx / 2);
+            int n_states_to_drop = random_n_states(rng);
+            sa_state.next_action_idx = sa_state.current_action_idx - n_states_to_drop;
+            sa_state.next_var_state_idx = sa_state.current_var_state_idx - n_states_to_drop * STATE_LENGTH_HEU;
+        } else {
+            int action_idx = applicable_actions[action_num];
+            printf("action %d\n", action_idx);
+            apply_action_effects(current_var_state, action_idx);
+            if (sa_state.current_action_idx < 0) {
+                sa_state.next_action_idx = 0;
+            } else {
+                sa_state.next_action_idx = sa_state.current_action_idx + 1;
+            }
+            if (sa_state.current_var_state_idx < 0) {
+                sa_state.next_var_state_idx = 0;
+            } else {
+                sa_state.next_var_state_idx = sa_state.current_var_state_idx + STATE_LENGTH_HEU;
+            }
+            if (sa_state.next_action_idx < STORAGE_LENGTH) {
+                actions[sa_state.next_action_idx] = action_idx;
+            } else {
+                printf("Out of memory %d.\n", sa_state.next_action_idx);
+                abort();
+            }
+        }
+        uint64_t* next_var_state = get_state(sa_state.next_var_state_idx);
 
         // check goal
-        if (is_goal(last_state)) {
+        if (is_goal(next_var_state)) {
             printf("Success.\n");
-            // complete action array
             done = true;
             break;
         }
 
         // state value
-        ff_heuristic(last_state);
-        uint64_t next_value = actions.size() + last_state[STATE_LENGTH];
+        ff_heuristic(next_var_state);
+        uint64_t next_value = sa_state.current_action_idx + next_var_state[STATE_LENGTH];
 
         // update state
-        if (next_value < value) {
-            // keep the state and add the action, or remove states and actions 
-            
-            // update value
+        uint64_t prob = exp(-(next_value - value) / T);
+        std::bernoulli_distribution d(prob);
+        if (prob > 1 || d(rng)) {
+            sa_state.current_var_state_idx = sa_state.next_var_state_idx;
+            sa_state.current_action_idx = sa_state.next_action_idx;
             value = next_value;
+            current_var_state = next_var_state;
+            // update storage when remove actions/states
         } else {
-            // undo the last action whether it's adding a new state or removing some states
+            if (sa_state.next_action_idx > sa_state.current_action_idx) {
+                remove_last();
+            }
         }
-        std::mt19937 rng(std::chrono::steady_clock::now().time_since_epoch().count());
-        std::bernoulli_distribution();
-
+        printf("current state: %ld\n");
+        printf("actions: ");
+        for (int i = 0; i <= sa_state.current_action_idx; i++) {
+            printf("%d ", actions[i]);
+        }
+        printf("\n");
 
         T *= u;
     }

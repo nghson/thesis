@@ -214,6 +214,7 @@ void simulated_annealing() {
     printf("number of states created: %ld\n", count);
     printf("time elapsed: %f\n", total.count());
     printf("number of states created per second: %f\n", count / total.count());
+    printf("\n");
 
     if (!done) {
         printf("No solution found.\n");

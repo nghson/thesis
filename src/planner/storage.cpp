@@ -12,6 +12,7 @@ void storage_init() {
     uint64_t* storage_ptr = (uint64_t*) malloc(sizeof(uint64_t) * STORAGE_LENGTH);
     if (storage_ptr == NULL) {
         printf("Error: storage allocation failed.\n");
+        free_storage();
         abort();
     }
     storage.storage_ptr = storage_ptr;
@@ -42,8 +43,9 @@ void remove_last() {
 }
 
 uint64_t* get_state(int index) {
-    if (index > storage.size - 1) {
-        printf("Error: storage index %d out of bounds.\n", index);
+    if (index >= storage.size) {
+        printf("Error: storage index %d out of bounds for storage length %d.\n", index, storage.size);
+        free_storage();
         abort();
     }
     return storage.storage_ptr + index;

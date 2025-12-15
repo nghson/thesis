@@ -20,9 +20,12 @@ def write_configs(var_infos: list[representations.VarInfo]):
     with open(filepath, "w") as file:
         file.write("#ifndef CONFIG_H\n#define CONFIG_H\n")
         state_length = var_infos[-1].word_pos + 1
-        file.write(f"#define STATE_LENGTH {state_length}\n")
-        file.write("#define STATE_LENGTH_HEU STATE_LENGTH + 1\n")
-        file.write(f"#define STORAGE_LENGTH {constants.STORAGE_LENGTH}\n")
+        # file.write(f"#define STATE_LENGTH {state_length}\n")
+        # file.write("#define STATE_LENGTH_HEU STATE_LENGTH + 1\n")
+        # file.write(f"#define STORAGE_LENGTH {constants.STORAGE_LENGTH}\n")
+        file.write(f"const int STATE_LENGTH = {state_length};\n")
+        file.write("const int STATE_LENGTH_HEU = STATE_LENGTH + 1;\n")
+        file.write(f"const int STORAGE_LENGTH = {constants.STORAGE_LENGTH};\n")
         file.write("#endif")
 
 

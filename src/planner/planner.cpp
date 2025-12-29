@@ -116,7 +116,7 @@ void simulated_annealing() {
     bool done = false;
     std::mt19937 rng(std::chrono::steady_clock::now().time_since_epoch().count());
 
-    int count = 0;
+    int sa_count = 0;
     auto start = std::chrono::steady_clock::now();
 
     while (T > 1) {
@@ -205,15 +205,15 @@ void simulated_annealing() {
             abort();
         }
 
-        count++;
+        sa_count++;
         T *= u;
     }
 
     auto now = std::chrono::steady_clock::now();
     std::chrono::duration<double> total = now - start;
-    printf("number of states created: %ld\n", count);
+    printf("number of states created: %ld\n", sa_count);
     printf("time elapsed: %f\n", total.count());
-    printf("number of states created per second: %f\n", count / total.count());
+    printf("number of states created per second: %f\n", sa_count / total.count());
     printf("\n");
 
     if (!done) {

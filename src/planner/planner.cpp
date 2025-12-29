@@ -154,6 +154,8 @@ void simulated_annealing() {
             }
         }
 
+        sa_count++;
+
         uint64_t* next_var_state;
         if (next_var_state_idx < 0) {
             next_var_state = INITIAL_STATE;
@@ -205,7 +207,6 @@ void simulated_annealing() {
             abort();
         }
 
-        sa_count++;
         T *= u;
     }
 
